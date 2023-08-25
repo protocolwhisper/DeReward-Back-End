@@ -1,64 +1,79 @@
 "use strict";
 
-import express from "express";
+// ----------- Imports -------------
 import { ethers } from "ethers";
-import { abi_oracle } from "./abi";
-import { getProfileDetails } from './queries';
 import { load } from "ts-dotenv";
-const env = load({
-    API_ENDPOINT:String ,
-    PK:String,
-    CONTRACT_ADDRESS_ORACLE:String,
-});
-// Your contract address (replace with your actual contract address)
-const contractAddress = env.CONTRACT_ADDRESS_ORACLE;
-// Mocking storing state 
+import { abi_oracle } from "./abi";
 
+// ----------- Type Definitions -------------
 type HashMap1 = {
     [key: string]: number[];
 };
 
 type HashMap2 = {
-    [key: string]: number;
+    [key: string]: string;
 };
 
-// Create and export the hashmaps
-export const response_hashMap: HashMap1 = {};
-export const hashMap2: HashMap2 = {};
+export type Collection = {
+    id: number;
+    name: string;
+    condition: string;
+    stat: string;
+    url: string;
+};
 
-// Connect to a provider (you may use a different provider if needed)
-const provider = new ethers.JsonRpcProvider(env.API_ENDPOINT);
-const wallet = new ethers.Wallet(env.PK, provider); // Remember to keep private keys secure, consider environment variables.
+// ----------- Constants & Globals -------------
+const env = load({
+    API_ENDPOINT: String,
+    PK: String,
+    CONTRACT_ADDRESS_ORACLE: String,
+});
 
+const contractAddress = env.CONTRACT_ADDRESS_ORACLE;
+
+const provider = new ethers.providers.JsonRpcProvider(env.API_ENDPOINT);
+const wallet = new ethers.Wallet(env.PK, provider);
 const contract = new ethers.Contract(contractAddress, abi_oracle, wallet);
 
-//Submit the Request to the consumer contract
+export let collectionIdCounter = 0;
+export const rewards_collections: { [id: number]: Collection } = {};
+export const response_hashMap: HashMap1 = {};
+export const hashmap: HashMap2 = {};
+
+// ----------- Functions -------------
 export async function RequestOracle(profileId: string) {
-    const tx = await contract.reques(profileId);
+    const tx = await contract.request(profileId);
     const receipt = await tx.wait();
     return receipt;
 }
 
-// Extract the data from the oracle response
 export function extract_result(num: number): number[] {
-    let str = String(num);
+    const str = num.toString();
     return [
-        Number(str.slice(0, 4)), // totalFollowers
-        Number(str.slice(4, 8)), // totalFollowing
-        Number(str.slice(8, 12)), // totalPost
-        Number(str.slice(12, 16)), // totalComments
-        Number(str.slice(16, 20)), // totalMirrors 
-        Number(str.slice(20, 24)), //totalPublications
-        Number(str.slice(24, 28)) // totalCollections 
+        Number(str.slice(0, 4)),
+        Number(str.slice(4, 8)),
+        Number(str.slice(8, 12)),
+        Number(str.slice(12, 16)),
+        Number(str.slice(16, 20)),
+        Number(str.slice(20, 24)),
+        Number(str.slice(24, 28))
     ];
 }
-// This search kudos available for claiming 
-// What if here i pass the address and return the availables as a url for the image
-//How to make a value pass for differente created conditions and return that url by performing certains call to the contracts uri created 
-export function search_kudos(){
 
-}
+export function evaluateConditions(x: any): number[] {
+    const indices: number[] = [];
 
-export function create_kudos(){
+    Object.values(rewards_collections).forEach((collection, index) => {
+        try {
+            // Using a new Function for scope isolation and dynamic evaluation
+            const evaluate = new Function("x", `return ${collection.condition}`);
+            if (evaluate(x)) {
+                indices.push(index);
+            }
+        } catch (error) {
+            console.error(`Failed to evaluate condition for collection ${collection.name}: ${error.message}`);
+        }
+    });
 
+    return indices;
 }

@@ -1,33 +1,37 @@
 import fetch from 'node-fetch';
 
+// ----------- Type Definitions -------------
 interface DefaultProfileRequest {
   ethereumAddress: string;
 }
 
-export const getProfileDetails = async (ethereumAddress: string): Promise<any> => {
-  const endpoint = 'https://api-mumbai.lens.dev/';
-  const query = `
-    query DefaultProfile($ethereumAddress: String!) {
-      defaultProfile(request: { ethereumAddress: $ethereumAddress }) {
-        id
-        name
-        bio
-      }
+// ----------- Constants -------------
+const ENDPOINT = 'https://api-mumbai.lens.dev/';
+const QUERY = `
+  query DefaultProfile($ethereumAddress: String!) {
+    defaultProfile(request: { ethereumAddress: $ethereumAddress }) {
+      id
+      name
+      bio
     }
-  `;
+  }
+`;
 
+// ----------- Functions -------------
+export const getProfileDetails = async (ethereumAddress: string): Promise<string | null> => {
+  
   const variables: DefaultProfileRequest = {
-    ethereumAddress: ethereumAddress,
+    ethereumAddress,
   };
 
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetch(ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query,
+        query: QUERY,
         variables,
       }),
     });
@@ -36,7 +40,14 @@ export const getProfileDetails = async (ethereumAddress: string): Promise<any> =
       throw new Error(`Network response was not ok: ${response.statusText}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+
+    if (data?.defaultProfile?.id) {
+      return data.defaultProfile.id;
+    } else {
+      console.error('Unexpected response structure:', data);
+      return null;
+    }
     
   } catch (error) {
     console.error('There was a problem with the fetch operation:', error);

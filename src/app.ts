@@ -5,26 +5,28 @@ import { ethers } from "ethers";
 import { abi } from "./abi";
 import { getProfileDetails } from './queries';
 import { load } from "ts-dotenv";
-import { response_hashMap } from "./scripts";
-const env = load({
-    API_ENDPOINT:String ,
-    PK:String,
-    CONTRACT_ADDRESS:String,
-});
-// Your contract address (replace with your actual contract address)
-const contractAddress = env.CONTRACT_ADDRESS;
+import { Collection, RequestOracle, collectionIdCounter, evaluateConditions, response_hashMap , rewards_collections } from "./scripts";
+import { Counter } from './counter';
+import { hook_contract } from "./event";
 
-// Connect to a provider (you may use a different provider if needed)
-const provider = new ethers.JsonRpcProvider(env.API_ENDPOINT);
-const wallet = new ethers.Wallet(env.PK, provider); // Remember to keep private keys secure, consider environment variables.
+const counterInstance = Counter.getInstance();
+
+const env = load({
+    API_ENDPOINT: String,
+    PK: String,
+    CONTRACT_ADDRESS: String,
+    // Assuming you might want to load the WebSocket endpoint in the future.
+});
+
+const contractAddress = env.CONTRACT_ADDRESS;
+const provider = new ethers.providers.JsonRpcProvider(env.API_ENDPOINT);
+const wallet = new ethers.Wallet(env.PK, provider);
 
 const contract = new ethers.Contract(contractAddress, abi, wallet);
 
 const app = express();
 const port = 3001;
-let tokenid = 0;
 
-// Middleware to parse JSON body
 app.use(express.json());
 
 app.post('/mint', async (req, res) => {
@@ -35,10 +37,9 @@ app.post('/mint', async (req, res) => {
     }
 
     try {
-        // Call your contract's mint function
-        const tx = await contract.mint(ethereumAddress, (tokenid + 1), 1, "0x");
+        const tx = await contract.mint(ethereumAddress, 1, "0x");
         const receipt = await tx.wait();
-        res.json({
+        res.status(201).json({
             transactionHash: tx.hash,
             confirmation: 'Transaction has been confirmed!',
             blockNumber: receipt.blockNumber
@@ -59,41 +60,59 @@ app.get('/checkprofile', async (req, res) => {
     try {
         const profileDetails = await getProfileDetails(ethereumAddress);
         if (!profileDetails) {
-            return res.status(404).send('Profile not found or there was an error fetching details.');
+            return res.status(404).send('Address has not been invited to lens.');
         }
-        res.json(profileDetails);
+
+        const request = await RequestOracle(profileDetails);
+        console.log('Receipt of Request' + request);
+        const tx_hook = await hook_contract(ethereumAddress);
+        console.log('Event Extracted' + tx_hook);
+        const tx_result = response_hashMap[ethereumAddress];
+
+        const tx_str = tx_result.toString().padStart(8, '0');
+        const firstValue = tx_str.slice(0, 4);
+        const secondValue = tx_str.slice(4);
+
+        const dropone = evaluateConditions(firstValue);
+        const droptwo = evaluateConditions(secondValue);
+
+        const metadata = rewards_collections[dropone[0]];
+        const metadatatwo = rewards_collections[droptwo[0]];
+
+        const urlForMetadata = metadata.url;
+        const urlForMetadatatwo = metadatatwo.url;
+
+        res.json({
+            urlForMetadata,
+            urlForMetadatatwo
+        });
+
     } catch (error) {
+        console.error('Error:', error);
         res.status(500).send('Internal server error.');
     }
 });
 
-//What are u trying to query here
-
-app.post('/query_oracle', async (req, res) => {
-    const { ethereumAddress } = req.body;
-
-    if (!ethereumAddress) {
-        return res.status(400).send('Ethereum address is required.');
-    }
+app.post('/create_reward', async (req, res) => {
+    const { CollectionName, Condition, stat, reward_url } = req.body;
 
     try {
-        let consistency = {
-            exists: (address: string) => !!response_hashMap[address]
+        const newCollection: Collection = {
+            id: counterInstance.value,
+            name: CollectionName,
+            condition: Condition,
+            stat: stat,
+            url: reward_url
         };
+
+        rewards_collections[collectionIdCounter] = newCollection;
+        counterInstance.increment();
         
-        if (consistency.exists(ethereumAddress)) {
-            console.log("The address exists in the result_hashMap.");
-        } else {
-            console.log("The address does not exist in the result_hashMap.");
-        }
-        
-        const tx = await contract.mint(ethereumAddress, (tokenid + 1), 1, "0x");
-        const receipt = await tx.wait();
-        res.json({
-            transactionHash: tx.hash,
-            confirmation: 'Transaction has been confirmed!',
-            blockNumber: receipt.blockNumber
+        res.status(201).json({
+            message: "Instance created successfully!",
+            collectionName: CollectionName
         });
+
     } catch (error) {
         console.error('Error sending transaction:', error);
         res.status(500).send('Error sending transaction.');
