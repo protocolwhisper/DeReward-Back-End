@@ -19,7 +19,7 @@ const env = load({
 });
 
 const contractAddress = env.CONTRACT_ADDRESS;
-const provider = new ethers.providers.JsonRpcProvider(env.API_ENDPOINT);
+const provider = new ethers.JsonRpcProvider(env.API_ENDPOINT);
 const wallet = new ethers.Wallet(env.PK, provider);
 
 const contract = new ethers.Contract(contractAddress, abi, wallet);

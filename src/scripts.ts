@@ -31,7 +31,7 @@ const env = load({
 
 const contractAddress = env.CONTRACT_ADDRESS_ORACLE;
 
-const provider = new ethers.providers.JsonRpcProvider(env.API_ENDPOINT);
+const provider = new ethers.JsonRpcProvider(env.API_ENDPOINT);
 const wallet = new ethers.Wallet(env.PK, provider);
 const contract = new ethers.Contract(contractAddress, abi_oracle, wallet);
 
@@ -42,11 +42,15 @@ export const hashmap: HashMap2 = {};
 
 // ----------- Functions -------------
 export async function RequestOracle(profileId: string) {
-    const tx = await contract.request(profileId);
-    const receipt = await tx.wait();
-    return receipt;
+    try {
+        const tx = await contract.request(profileId);
+        const receipt = await tx.wait();
+        return receipt;
+    } catch (error) {
+        console.error('Error in RequestOracle:', error.message);
+        throw error;
+    }
 }
-
 export function extract_result(num: number): number[] {
     const str = num.toString();
     return [
