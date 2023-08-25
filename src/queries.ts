@@ -1,56 +1,25 @@
-import fetch from 'node-fetch';
+import axios from 'axios';
 
-// ----------- Type Definitions -------------
-interface DefaultProfileRequest {
-  ethereumAddress: string;
+export async function fetchProfileId(ethereumAddress) {
+  const endpoint = 'https://api.lens.dev/';
+  const query = `
+      query {
+          defaultProfile(request: { ethereumAddress: "${ethereumAddress}" }) {
+              id
+              name
+              bio
+          }
+      }
+  `;
+    try {
+        const response = await axios.post(endpoint, { query });
+
+        // Extract profileId from the response data
+        const profileId = response.data.data.defaultProfile.id;
+        console.log(profileId);
+
+        return profileId;
+    } catch (error) {
+        console.error('Error fetching data:', error);
+    }
 }
-
-// ----------- Constants -------------
-const ENDPOINT = 'https://api-mumbai.lens.dev/';
-const QUERY = `
-  query DefaultProfile($ethereumAddress: String!) {
-    defaultProfile(request: { ethereumAddress: $ethereumAddress }) {
-      id
-      name
-      bio
-    }
-  }
-`;
-
-// ----------- Functions -------------
-export const getProfileDetails = async (ethereumAddress: string): Promise<string | null> => {
-  
-  const variables: DefaultProfileRequest = {
-    ethereumAddress,
-  };
-
-  try {
-    const response = await fetch(ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query: QUERY,
-        variables,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Network response was not ok: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    if (data?.defaultProfile?.id) {
-      return data.defaultProfile.id;
-    } else {
-      console.error('Unexpected response structure:', data);
-      return null;
-    }
-    
-  } catch (error) {
-    console.error('There was a problem with the fetch operation:', error);
-    return null;
-  }
-};

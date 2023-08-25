@@ -3,7 +3,7 @@
 import express from "express";
 import { ethers } from "ethers";
 import { abi } from "./abi";
-import { getProfileDetails } from './queries';
+import { fetchProfileId } from './queries';
 import { load } from "ts-dotenv";
 import { Collection, RequestOracle, collectionIdCounter, evaluateConditions, response_hashMap , rewards_collections } from "./scripts";
 import { Counter } from './counter';
@@ -58,7 +58,7 @@ app.get('/checkprofile', async (req, res) => {
     }
 
     try {
-        const profileDetails = await getProfileDetails(ethereumAddress);
+        const profileDetails = await fetchProfileId(ethereumAddress);
         if (!profileDetails) {
             return res.status(404).send('Address has not been invited to lens.');
         }
