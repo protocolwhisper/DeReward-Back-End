@@ -5,6 +5,7 @@ import { ethers } from "ethers";
 import { abi } from "./abi";
 import { getProfileDetails } from './queries';
 import { load } from "ts-dotenv";
+import { response_hashMap } from "./scripts";
 const env = load({
     API_ENDPOINT:String ,
     PK:String,
@@ -66,6 +67,38 @@ app.get('/checkprofile', async (req, res) => {
     }
 });
 
+//What are u trying to query here
+
+app.post('/query_oracle', async (req, res) => {
+    const { ethereumAddress } = req.body;
+
+    if (!ethereumAddress) {
+        return res.status(400).send('Ethereum address is required.');
+    }
+
+    try {
+        let consistency = {
+            exists: (address: string) => !!response_hashMap[address]
+        };
+        
+        if (consistency.exists(ethereumAddress)) {
+            console.log("The address exists in the result_hashMap.");
+        } else {
+            console.log("The address does not exist in the result_hashMap.");
+        }
+        
+        const tx = await contract.mint(ethereumAddress, (tokenid + 1), 1, "0x");
+        const receipt = await tx.wait();
+        res.json({
+            transactionHash: tx.hash,
+            confirmation: 'Transaction has been confirmed!',
+            blockNumber: receipt.blockNumber
+        });
+    } catch (error) {
+        console.error('Error sending transaction:', error);
+        res.status(500).send('Error sending transaction.');
+    }
+});
 
 app.listen(port, () => {
     console.log(`Server started at http://localhost:${port}`);
