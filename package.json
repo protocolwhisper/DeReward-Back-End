@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "worker": "npx ts-node ./src/event.ts"
   },
   "keywords": [],
   "author": "",
@@ -16,9 +17,10 @@
   "dependencies": {
     "@types/node-fetch": "^2.6.4",
     "axios": "^1.4.0",
-    "ethers": "^6.7.1",
+    "ethers": "^5.7",
     "express": "^4.17.1",
     "node-fetch": "^2.7.0",
+    "pg": "^8.11.3",
     "ts-dotenv": "^0.9.1",
     "ts-node": "^10.9.1"
   }
