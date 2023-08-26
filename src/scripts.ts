@@ -3,7 +3,7 @@
 // ----------- Imports -------------
 import { ethers } from "ethers";
 import { load } from "ts-dotenv";
-import { abi_oracle } from "./abi";
+import { abi, abi_oracle } from "./abi";
 
 // ----------- Type Definitions -------------
 type HashMap1 = {
@@ -81,3 +81,29 @@ export function evaluateConditions(x: any): number[] {
 
     return indices;
 }
+
+export function getContractInstance(contractAddress: string) {
+    // Use your web3 or ethers provider and ABI to create the contract instance
+    // I'm assuming you're using ethers here
+    const provider = new ethers.providers.JsonRpcProvider(env.API_ENDPOINT); // or your specific provider
+    const contract = new ethers.Contract(contractAddress, abi, provider);
+    return contract;
+}
+///Mocks 
+export const CONTRACT_ADDRESSES = {
+    1: '0xContractAddress1',
+    2: '0xContractAddress2',
+    3: '0xContractAddress3'
+};
+
+export const URL_TO_CONTRACT_MAPPING = {
+    "example1.com": CONTRACT_ADDRESSES[1],
+    "example2.com": CONTRACT_ADDRESSES[2],
+    "example3.com": CONTRACT_ADDRESSES[3]
+};
+
+export function getContractAddressFromUrl(url: string): string | undefined {
+    return URL_TO_CONTRACT_MAPPING[url];
+}
+
+

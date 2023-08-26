@@ -3,9 +3,9 @@
 import express from "express";
 import { ethers } from "ethers";
 import { abi } from "./abi";
-import { fetchProfileId } from './queries';
+import { fetchProfileId, getRandomInt, getRandomUrls, urls } from './queries';
 import { load } from "ts-dotenv";
-import { Collection, RequestOracle, collectionIdCounter, evaluateConditions, response_hashMap , rewards_collections } from "./scripts";
+import { CONTRACT_ADDRESSES, Collection, RequestOracle, URL_TO_CONTRACT_MAPPING, collectionIdCounter, evaluateConditions, getContractInstance, response_hashMap , rewards_collections } from "./scripts";
 import { Counter } from './counter';
 import { hook_contract } from "./event";
 import { fetchOracleResponse, insertCollectionReward } from "./postgre";
@@ -50,14 +50,21 @@ app.post('/mint', async (req, res) => {
         res.status(500).send('Error sending transaction.');
     }
 });
+// Mock mint 
 app.post('/mock_mint', async (req, res) => {
-    //Ask for an option then execute the normall mint for whatever option choosed
-    //Create two contracts 
-    const { ethereumAddress } = req.body;
+    const { ethereumAddress, url } = req.body;  // Receive a URL instead of an option
 
     if (!ethereumAddress) {
         return res.status(400).send('Ethereum address is required.');
     }
+
+    const contractAddress = URL_TO_CONTRACT_MAPPING[url];  // Look up the contract address using the URL
+    if (!contractAddress) {
+        return res.status(400).send('Invalid URL or URL not mapped to a contract address.');
+    }
+
+    // Assuming you have a function to get a contract instance
+    const contract = getContractInstance(contractAddress); 
 
     try {
         const tx = await contract.mint(ethereumAddress, 1, "0x");
@@ -73,7 +80,8 @@ app.post('/mock_mint', async (req, res) => {
     }
 });
 
-app.get('/mock_check'), async (req, res) => {
+//Mock profile validation
+app.get('/mock_check', async (req, res) => {
 
     const ethereumAddress = req.query.ethereumAddress as string;
 
@@ -82,14 +90,22 @@ app.get('/mock_check'), async (req, res) => {
     }
 
     const profileDetails = await fetchProfileId(ethereumAddress);
-        if (!profileDetails) {
-            return res.status(404).send('Address has not been invited to lens.');
-        }
-    //random index then pull the url 
-    
-    //TODO Return random url like , 01 , 10 , or 11
-}
+    if (!profileDetails) {
+        return res.status(404).send('Address has not been invited to lens.');
+    }
 
+    const randomnumber = getRandomInt(1 , urls.length)
+
+    // Fetching 2 random URLs for demonstration. Adjust the count as needed.
+    const randomUrls = getRandomUrls(randomnumber);
+    
+    // Constructing the response format based on your TODO. Adjust as needed.
+    const formattedResponse = randomUrls.map(url => url.split('://')[1]).join(', ');
+
+    return res.status(200).send(formattedResponse);  // Example: 'example1.com, example2.com'
+});
+
+// Consuming Lens Api Oracle
 app.get('/checkprofile', async (req, res) => {
     const ethereumAddress = req.query.ethereumAddress as string;
 
