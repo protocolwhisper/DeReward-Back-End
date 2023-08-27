@@ -21,3 +21,6 @@ EOF
 docker-compose up
 #Run worker that consumes Events logs from Oracle Consumer
 npm run worker || yarn run worker || pnpm run worker
+#Run api 
+# Start the dereward process in the background
+npm run dereward &

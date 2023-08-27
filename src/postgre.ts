@@ -1,8 +1,5 @@
 import { Client } from 'pg';
 
-
-
-
 export const checkConnection = async () => {
     const client = new Client({
         host: 'localhost',

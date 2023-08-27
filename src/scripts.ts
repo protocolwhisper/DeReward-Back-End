@@ -4,6 +4,7 @@
 import { ethers } from "ethers";
 import { load } from "ts-dotenv";
 import { abi, abi_oracle } from "./abi";
+import { Client } from 'pg';
 
 // ----------- Type Definitions -------------
 type HashMap1 = {
@@ -64,23 +65,51 @@ export function extract_result(num: number): number[] {
     ];
 }
 
-export function evaluateConditions(x: any): number[] {
-    const indices: number[] = [];
 
-    Object.values(rewards_collections).forEach((collection, index) => {
-        try {
-            // Using a new Function for scope isolation and dynamic evaluation
-            const evaluate = new Function("x", `return ${collection.condition}`);
-            if (evaluate(x)) {
-                indices.push(index);
-            }
-        } catch (error) {
-            console.error(`Failed to evaluate condition for collection ${collection.name}: ${error.message}`);
-        }
+
+interface Result {
+    totalPosts: number;
+    totalMirrors: number;
+}
+
+export async function evaluateConditions(result: Result): Promise<{ matchingUrls: string[] }> {
+    const matchingUrls: string[] = [];
+    const client = new Client({
+        host: 'localhost',
+        port: 5432,
+        user: 'user',  // Replace with your PostgreSQL username
+        password: 'mysecretpassword',  // Replace with your PostgreSQL password
+        database: 'mydatabase',  // Replace with your PostgreSQL database name
     });
 
-    return indices;
+    try {
+        await client.connect();
+
+        const fetchQuery = `SELECT * FROM rewards WHERE stat = '${result.totalPosts}${result.totalMirrors}';`;
+        const queryResult = await client.query(fetchQuery);
+        const collections = queryResult.rows;
+
+        collections.forEach((collection) => {
+            try {
+                // Using a new Function for scope isolation and dynamic evaluation
+                const evaluate = new Function("x", `return ${collection.condition}`);
+                if (evaluate(result)) {
+                    matchingUrls.push(collection.url);
+                }
+            } catch (error) {
+                console.error(`Failed to evaluate condition for collection ${collection.name}: ${error.message}`);
+            }
+        });
+
+        return { matchingUrls };
+    } catch (err) {
+        console.error("Error:", err.message);
+        throw err;
+    } finally {
+        await client.end();
+    }
 }
+
 
 export function getContractInstance(contractAddress: string) {
     // Use your web3 or ethers provider and ABI to create the contract instance
@@ -106,4 +135,15 @@ export function getContractAddressFromUrl(url: string): string | undefined {
     return URL_TO_CONTRACT_MAPPING[url];
 }
 
+// Parsing the oracle response 
 
+export function parseString(input) {
+    if (typeof input !== 'string') {
+        throw new Error('Input must be a string');
+    }
+
+    return {
+        totalPosts: parseInt(input.charAt(0), 10),
+        totalMirrors: parseInt(input.charAt(4), 10)
+    };
+}

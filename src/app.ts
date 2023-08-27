@@ -5,10 +5,10 @@ import { ethers } from "ethers";
 import { abi } from "./abi";
 import { fetchProfileId, getRandomInt, getRandomUrls, urls } from './queries';
 import { load } from "ts-dotenv";
-import { CONTRACT_ADDRESSES, Collection, RequestOracle, URL_TO_CONTRACT_MAPPING, collectionIdCounter, evaluateConditions, getContractInstance, response_hashMap , rewards_collections } from "./scripts";
+import { CONTRACT_ADDRESSES, Collection, RequestOracle, URL_TO_CONTRACT_MAPPING, collectionIdCounter, evaluateConditions, getContractInstance, parseString, response_hashMap , rewards_collections } from "./scripts";
 import { Counter } from './counter';
 import { hook_contract } from "./event";
-import { fetchOracleResponse, insertCollectionReward } from "./postgre";
+import { create_all, fetchOracleResponse, insertCollectionReward } from "./postgre";
 
 const counterInstance = Counter.getInstance();
 
@@ -18,6 +18,9 @@ const env = load({
     CONTRACT_ADDRESS: String,
     // Assuming you might want to load the WebSocket endpoint in the future.
 });
+
+// For initializing the Postgre DB
+create_all()
 
 const contractAddress = env.CONTRACT_ADDRESS;
 const provider = new ethers.providers.JsonRpcProvider(env.API_ENDPOINT);
@@ -29,6 +32,12 @@ const app = express();
 const port = 3001;
 
 app.use(express.json());
+
+
+app.get('/', (req, res) => {
+    res.send('Server is alive and running!');
+});
+
 
 app.post('/mint', async (req, res) => {
     const { ethereumAddress } = req.body;
@@ -124,28 +133,11 @@ app.get('/checkprofile', async (req, res) => {
         // Consume the response 
         let codedvalue = fetchOracleResponse(profileDetails)
         // Call function that decode the values and return me an object with two values totalpost , total mirrors
+        let result = parseString(codedvalue);
 
-
-        
-        const tx_result = response_hashMap[ethereumAddress];
-
-        const tx_str = tx_result.toString().padStart(8, '0');
-        const firstValue = tx_str.slice(0, 4);
-        const secondValue = tx_str.slice(4);
         // Here we evaluate that my response meet some of the conditions of the drops created if so return me the .url of the creation 
-        const dropone = evaluateConditions(firstValue); // This will need refactor
-        const droptwo = evaluateConditions(secondValue);
-
-        const metadata = rewards_collections[dropone[0]];
-        const metadatatwo = rewards_collections[droptwo[0]];
-
-        const urlForMetadata = metadata.url;
-        const urlForMetadatatwo = metadatatwo.url;
-
-        res.json({
-            urlForMetadata,
-            urlForMetadatatwo
-        });
+        const data = await evaluateConditions(result);
+        res.json(data);  // This will send the data as a JSON response
 
     } catch (error) {
         console.error('Error:', error);
@@ -156,6 +148,7 @@ app.get('/checkprofile', async (req, res) => {
 app.post('/create_reward', async (req, res) => {
     const { CollectionName, Condition, stat, reward_url } = req.body;
     // Remember you are using a counter class
+    // We should rebase it to store this in a SC
     try {
         const newCollection: Collection = {
             id: counterInstance.value, // Key: assuming they would be a fair amount of creations 
