@@ -24,6 +24,9 @@ To run the system, execute the `init.sh` script:
 ./init.sh
 ```
 
+You should see an output like this :
+![Output](https://bafkreicbnuadtlz4k67hxjqkxoz7bynml6fphaq2esybgdvjg2ilo6sptq.ipfs.nftstorage.link/)
+
 ## About DeReward ⭐
 
 Dereward⭐ is a reward minting system that evaluates user activities and conditions to determine eligibility for minting specific collections. By integrating with the Phala network and storing event data in a PostgreSQL database, it ensures a seamless and efficient workflow for users and administrators alike.
