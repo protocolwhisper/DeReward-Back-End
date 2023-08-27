@@ -120,15 +120,15 @@ export function getContractInstance(contractAddress: string) {
 }
 ///Mocks 
 export const CONTRACT_ADDRESSES = {
-    1: '0xContractAddress1',
-    2: '0xContractAddress2',
-    3: '0xContractAddress3'
+    1: '0xCeE57d55b9d306b715f60b0C251DFBE66f39a502',
+    2: '0x2772FC8442fD6bB53554F6440014930c6D552d89',
+    3: '0xb2766648A68CFb64b2700d9e4e6e331C1E230d87'
 };
 
 export const URL_TO_CONTRACT_MAPPING = {
-    "example1.com": CONTRACT_ADDRESSES[1],
-    "example2.com": CONTRACT_ADDRESSES[2],
-    "example3.com": CONTRACT_ADDRESSES[3]
+    "https://bafkreid43s42sb77nctfw6ypjyg3usadlkiw6gwv4sradsy2tn6oionpzy.ipfs.nftstorage.link/": CONTRACT_ADDRESSES[1],
+    "https://bafkreiah4mec2zjfdac4kijy7r4ycy6sfongd3qewrm6hfj6nzu6i4mhmu.ipfs.nftstorage.link/": CONTRACT_ADDRESSES[2],
+    "https://bafkreibbr3bae6cjujj3mjbkhbq2yikilyssltoetwj2ahwuucnlcrzoia.ipfs.nftstorage.link/": CONTRACT_ADDRESSES[3]
 };
 
 export function getContractAddressFromUrl(url: string): string | undefined {
